@@ -1,0 +1,17 @@
+.ans {
+    float: right;
+    width: 50px;
+}
+
+#timer {
+    float: right;
+}
+
+#result {
+    position: absolute;
+    top: 50px;
+    right: 0px;
+    padding: 5px;
+    border: 2px solid black;
+    background: rgba(255, 255, 0, 1);
+}
