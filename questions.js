@@ -2,10 +2,11 @@ $(document).ready(function() {
     var MAX_ROWS = 10;
     var MAX_COLS = 5;
     var MAX_TIME = 120;
-    var RANDOM_SOLVE = false;
+    var RANDOM_SOLVE = true;
 
     var problems = [];
 
+    var timeSpent = 0;
     var gameFinished = false;
 
     var prob = $('#prob1');
@@ -20,7 +21,7 @@ $(document).ready(function() {
             $('.num2', clone).text('' + num2);
             clone.css({
                 'position': 'absolute',
-                'top': 60*rowIdx + 50,
+                'top': 60*rowIdx + 70,
                 'left': 200*colIdx + 50
             });
             $('body').append(clone);
@@ -46,11 +47,11 @@ $(document).ready(function() {
         while (1) {
             var k = await readKey();
             var n = k.which;
-            if (n == 13) {
+            if (n == 13) { // enter
                 return [ans, tried];
-            } else if (n == 8) {
+            } else if (n == 8) { // backspace
                 ans = Math.floor(ans / 10);
-            } else if (n >= 48 && n <= 57) {
+            } else if (n >= 48 && n <= 57) { // digit
                 tried = true;
                 ans = ans*10 + n - 48; // 48 is ascii for 0
             }
@@ -73,8 +74,6 @@ $(document).ready(function() {
     async function solveOneProblem(prob) {
         highlightProblem(prob.div);
 
-        var n1 = prob.num1;
-        var n2 = prob.num2;
         var [ans, tried] = await getGuess(prob.div);
 
         if (tried) {
@@ -110,7 +109,7 @@ $(document).ready(function() {
             });
         }
 
-        $('#result').text('' + numRight + ' right, ' + numLeft + ' unsolved, ' + numWrong + ' wrong!').show();
+        $('#result').text('' + numRight + ' right, ' + numLeft + ' unsolved, ' + numWrong + ' wrong in ' + timeSpent + ' seconds!').show();
     }
 
     async function solveProblems() {
@@ -139,14 +138,12 @@ $(document).ready(function() {
                 }
             }
 
-
             if (gameFinished) {
                 return;
             }
         }
 
         gameFinished = true;
-        gradeProblems();
     }
 
     function waitFor(ms) {
@@ -157,14 +154,16 @@ $(document).ready(function() {
         var timerDiv = $('#timer');
 
         for (var i=0; i < MAX_TIME; i++) {
-            $(timerDiv).text('' + (MAX_TIME - 1 - i));
+            timeSpent = i;
+            $(timerDiv).text('' + MAX_TIME - 1 - timeSpent);
             await waitFor(1000); 
+
             if (gameFinished) {
                 return;
             }
         }
+
         gameFinished = true;
-        gradeProblems();
     }
 
     async function waitForEnter() {
@@ -180,10 +179,20 @@ $(document).ready(function() {
         $('#result').hide();
         $('#timer').text('' + MAX_TIME);
         await waitForEnter();
-        // No awaits below for the two async functions because we want to
-        // start them in parallel
-        updateTimer();
-        solveProblems();
+
+        // Even though it says "Promise.all", these two functions ensure
+        // that when one finishes, the other one finishes soon after as
+        // well. Note that the two functions would need to coordinate with
+        // each other using the gameFinished flag even if we were to use
+        // Promise.race instead of Promise.all. Promise.race does NOT
+        // terminate a started promise: it merely resolves when any of the
+        // promises is resolved. However, unfinished promises will continue
+        // to "run" till they finish.
+        await Promise.all([
+            updateTimer(),
+            solveProblems()
+        ]);
+        gradeProblems();
     }
 
     startGame();
